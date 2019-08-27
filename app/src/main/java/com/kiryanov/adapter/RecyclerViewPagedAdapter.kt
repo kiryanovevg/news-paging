@@ -1,18 +1,17 @@
-package com.roonyx.orcheya.adapter
+package com.kiryanov.adapter
 
 import android.view.ViewGroup
 import androidx.annotation.LayoutRes
-import androidx.lifecycle.ViewModel
 import androidx.paging.PagedListAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import com.roonyx.orcheya.adapter.view_holder.BindingViewHolder
-import com.roonyx.orcheya.adapter.view_holder.NetworkStateViewHolder
-import com.roonyx.orcheya.network.network_state.NetworkState
+import com.kiryanov.adapter.view_holder.BindingViewHolder
+import com.kiryanov.adapter.view_holder.NetworkStateViewHolder
+import com.kiryanov.network.network_state.NetworkState
 
-class RecyclerViewPagedAdapter<T, VM : ViewModel>(
+class RecyclerViewPagedAdapter<T, P>(
     @LayoutRes private val layoutId: Int,
-    private val vm: VM,
+    private val presenter: P,
     diffUtil: DiffUtil.ItemCallback<T>
 ) : PagedListAdapter<T, RecyclerView.ViewHolder>(diffUtil) {
 
@@ -21,15 +20,17 @@ class RecyclerViewPagedAdapter<T, VM : ViewModel>(
         private const val VIEW_NETWORK_STATE = 222
     }
 
+    var retryCallback: (() -> Unit)? = null
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = when(viewType) {
         VIEW_ITEM -> BindingViewHolder.create(layoutId, parent)
-        VIEW_NETWORK_STATE -> NetworkStateViewHolder.create(parent)
+        VIEW_NETWORK_STATE -> NetworkStateViewHolder.create(parent, retryCallback)
         else -> throw IllegalArgumentException("Unknown view type")
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (holder) {
-            is BindingViewHolder -> getItem(position)?.also { holder.bind(vm, it) }
+            is BindingViewHolder -> getItem(position)?.also { holder.bind(presenter, it) }
             is NetworkStateViewHolder -> networkState?.also { holder.bind(it) }
             else -> throw IllegalArgumentException("Unknown type View Holder")
         }

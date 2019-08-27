@@ -1,13 +1,12 @@
-package com.roonyx.orcheya.adapter.view_holder
+package com.kiryanov.adapter.view_holder
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.annotation.LayoutRes
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
-import androidx.lifecycle.ViewModel
 import androidx.recyclerview.widget.RecyclerView
-import com.roonyx.orcheya.BR
+import com.kiryanov.BR
 
 class BindingViewHolder private constructor(
     private val binding: ViewDataBinding
@@ -19,9 +18,9 @@ class BindingViewHolder private constructor(
         )
     }
 
-    fun <T> bind(vm: ViewModel, item: T) {
+    fun <T, P> bind(presenter: P, item: T) {
         binding.setVariable(BR.item, item)
-        binding.setVariable(BR.vm, vm)
+        binding.setVariable(BR.presenter, presenter )
         binding.executePendingBindings()
     }
 }

@@ -1,12 +1,11 @@
-package com.roonyx.orcheya.adapter.view_holder
+package com.kiryanov.adapter.view_holder
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.roonyx.orcheya.databinding.ItemNetworkStateBinding
-import com.roonyx.orcheya.network.network_state.NetworkState
-import kotlinx.android.synthetic.main.item_network_state.view.*
+import com.kiryanov.databinding.ItemNetworkStateBinding
+import com.kiryanov.network.network_state.NetworkState
 
 class NetworkStateViewHolder private constructor(
     private val binding: ItemNetworkStateBinding,

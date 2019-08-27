@@ -1,4 +1,4 @@
-package com.roonyx.orcheya.network.network_state
+package com.kiryanov.network.network_state
 
 import androidx.annotation.IntDef
 

@@ -1,23 +1,19 @@
 package com.kiryanov.data.data_source
 
-import androidx.paging.ItemKeyedDataSource
-import com.kiryanov.githubapp.adapter.NetworkState
-import com.kiryanov.githubapp.model.User
+import androidx.paging.PageKeyedDataSource
+import com.kiryanov.data.Repository
+import com.kiryanov.getHttpError
+import com.kiryanov.model.News
+import com.kiryanov.network.network_state.NetworkState
 import io.reactivex.Completable
-import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.functions.Action
 import io.reactivex.schedulers.Schedulers
-import kotlin.reflect.KFunction2
 
-class UserDataSource(
-    private val request: KFunction2<
-            @ParameterName(name = "since") Long,
-            @ParameterName(name = "perPage") Int,
-            Single<List<User>>>,
-    private val toUserId: Long
-) : ItemKeyedDataSource<Long, User>() {
+class NewsDataSource(
+    private val repository: Repository
+) : PageKeyedDataSource<Int, News>() {
 
     var initialState: ((NetworkState) -> Unit)? = null
     var loadingState: ((NetworkState) -> Unit)? = null
@@ -38,51 +34,44 @@ class UserDataSource(
         else retryCompletable = Completable.fromAction(action)
     }
 
-    override fun loadInitial(params: LoadInitialParams<Long>, callback: LoadInitialCallback<User>) {
-        val since = params.requestedInitialKey ?: throw IllegalArgumentException("requestedInitialKey not added")
-        val size = params.requestedLoadSize
+    override fun loadInitial(params: LoadInitialParams<Int>, callback: LoadInitialCallback<Int, News>) {
+        val perPage = params.requestedLoadSize
+        val startPage = 1
 
         initialState?.invoke(NetworkState.LOADING)
-        disposables.add(request.invoke(since, size).subscribe(
-            { users ->
+        disposables.add(repository.getNews(startPage, perPage).subscribe(
+            { response ->
                 setRetryAction(null)
-                callback.onResult(users.filter { user -> user.id <= toUserId })
+                callback.onResult(response.articles, null, startPage + 1)
                 loadingState?.invoke(NetworkState.SUCCESS)
                 initialState?.invoke(NetworkState.SUCCESS)
             },
             { throwable ->
                 setRetryAction(Action { loadInitial(params, callback) })
-                initialState?.invoke(NetworkState.error(throwable.message))
+                initialState?.invoke(NetworkState.ERROR(getHttpError(throwable)))
             }
         ))
     }
 
-    override fun loadAfter(params: LoadParams<Long>, callback: LoadCallback<User>) {
-        val since = params.key
-        val size = params.requestedLoadSize
-
-        if (since > toUserId) {
-            callback.onResult(emptyList())
-            return
-        }
+    override fun loadAfter(params: LoadParams<Int>, callback: LoadCallback<Int, News>) {
+        val perPage = params.requestedLoadSize
+        val startPage = params.key
 
         loadingState?.invoke(NetworkState.LOADING)
-        disposables.add(request.invoke(since, size).subscribe(
-            { users ->
+        disposables.add(repository.getNews(startPage, perPage).subscribe(
+            { response ->
                 setRetryAction(null)
-                callback.onResult(users.filter { user -> user.id <= toUserId })
+                callback.onResult(response.articles, if (startPage < response.totalResults) startPage + 1 else null)
                 loadingState?.invoke(NetworkState.SUCCESS)
             },
             { throwable ->
                 setRetryAction(Action { loadAfter(params, callback) })
-                loadingState?.invoke(NetworkState.error(throwable.message))
+                loadingState?.invoke(NetworkState.ERROR(getHttpError(throwable)))
             }
         ))
     }
 
-    override fun loadBefore(params: LoadParams<Long>, callback: LoadCallback<User>) {
-        //Not needed
+    override fun loadBefore(params: LoadParams<Int>, callback: LoadCallback<Int, News>) {
+        //not needed
     }
-
-    override fun getKey(item: User): Long  = item.id
 }
